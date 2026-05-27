@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Eqwal Parts of Something Bigger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --navy: #0a293d;
+    --navy-mid: #0e3650;
+    --navy-light: #164060;
+    --gold: #c9a84c;
+    --gold-light: #e8c97a;
+    --gold-dim: rgba(201,168,76,0.18);
+    --white: #ffffff;
+    --white-80: rgba(255,255,255,0.8);
+    --white-50: rgba(255,255,255,0.5);
+    --white-20: rgba(255,255,255,0.18);
+    --white-08: rgba(255,255,255,0.08);
+  }
+
+  html, body {
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--navy);
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .screen {
+    width: 100vw;
+    height: 100vh;
+    background: var(--navy);
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .bg-texture {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 80% 50%, rgba(14,54,80,0.6) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 60% at 10% 80%, rgba(201,168,76,0.04) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .gold-line {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent 0%, var(--gold) 30%, var(--gold-light) 60%, transparent 100%);
+    z-index: 10;
+  }
+
+  header {
+    position: relative;
+    z-index: 5;
+    padding: 2.2vh 4vw 1.5vh;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--white-08);
+  }
+
+  .eyebrow {
+    font-size: clamp(9px, 1vw, 13px);
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 0.4em;
+  }
+
+  .headline {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(24px, 3.8vw, 58px);
+    color: var(--white);
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+  }
+
+  .headline em {
+    font-style: italic;
+    color: var(--gold-light);
+  }
+
+  .header-right {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  .clock {
+    font-size: clamp(28px, 4vw, 60px);
+    font-weight: 300;
+    color: var(--white);
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  .date-str {
+    font-size: clamp(10px, 0.9vw, 14px);
+    color: var(--white-50);
+    font-weight: 300;
+    letter-spacing: 0.06em;
+  }
+
+  .main {
+    position: relative;
+    z-index: 5;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    overflow: hidden;
+  }
+
+  .story-panel {
+    position: relative;
+    overflow: hidden;
+    border-right: 1px solid var(--white-08);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .story-panel:last-child { border-right: none; }
+
+  .story-img-wrap {
+    position: relative;
+    width: 100%;
+    flex: 0 0 52%;
+    overflow: hidden;
+    background: var(--navy-mid);
+  }
+
+  .story-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    display: block;
+  }
+
+  .story-img.loaded { opacity: 1; }
+
+  .story-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 55%;
+    background: linear-gradient(to top, rgba(10,41,61,0.95) 0%, rgba(10,41,61,0.3) 70%, transparent 100%);
+  }
+
+  .tag-pill {
+    position: absolute;
+    top: 12px; left: 14px;
+    font-size: clamp(7px, 0.7vw, 10px);
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--navy);
+    background: var(--gold);
+    padding: 3px 10px;
+    border-radius: 2px;
+    z-index: 2;
+  }
+
+  .story-body {
+    flex: 1;
+    padding: 5% 7% 6%;
+    display: flex;
+    flex-direction: column;
+    background: var(--navy-mid);
+    border-top: 2px solid var(--gold-dim);
+  }
+
+  .story-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 400;
+    font-size: clamp(14px, 1.8vw, 26px);
+    color: var(--white);
+    line-height: 1.25;
+    margin-bottom: 0.5em;
+  }
+
+  .story-summary {
+    font-size: clamp(10px, 0.85vw, 13px);
+    color: var(--white-50);
+    line-height: 1.65;
+    font-weight: 300;
+    flex: 1;
+  }
+
+  .story-cta {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: clamp(8px, 0.7vw, 11px);
+    color: var(--gold);
+    letter-spacing: 0.1em;
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+
+  .cta-line {
+    height: 1px;
+    width: 20px;
+    background: var(--gold);
+    display: inline-block;
+    opacity: 0.7;
+  }
+
+  footer {
+    position: relative;
+    z-index: 5;
+    padding: 1.2vh 4vw;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid var(--white-08);
+  }
+
+  .ticker-wrap {
+    flex: 1;
+    overflow: hidden;
+    margin: 0 24px;
+    position: relative;
+  }
+
+  .ticker-wrap::before,
+  .ticker-wrap::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 48px;
+    z-index: 2;
+  }
+
+  .ticker-wrap::before { left: 0; background: linear-gradient(90deg, var(--navy), transparent); }
+  .ticker-wrap::after  { right: 0; background: linear-gradient(270deg, var(--navy), transparent); }
+
+  .ticker-track {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    animation: ticker 50s linear infinite;
+  }
+
+  .ticker-item {
+    font-size: clamp(9px, 0.85vw, 12px);
+    color: var(--white-50);
+    padding-right: 48px;
+    font-weight: 300;
+  }
+
+  .ticker-sep {
+    color: var(--gold);
+    font-size: 8px;
+    margin-right: 48px;
+    opacity: 0.7;
+  }
+
+  @keyframes ticker {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .footer-brand {
+    font-size: clamp(8px, 0.75vw, 11px);
+    color: var(--gold);
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .footer-brand::after {
+    content: '';
+    display: block;
+    width: 24px;
+    height: 1px;
+    background: var(--gold);
+    opacity: 0.4;
+  }
+
+  .footer-url {
+    font-size: clamp(8px, 0.72vw, 10px);
+    color: var(--white-20);
+    white-space: nowrap;
+    letter-spacing: 0.06em;
+  }
+
+  .progress-bar {
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 2px;
+    background: var(--gold);
+    opacity: 0.35;
+    width: 0%;
+  }
+
+  .progress-bar.running {
+    animation: progress 12s linear infinite;
+  }
+
+  @keyframes progress {
+    0%   { width: 0%; }
+    100% { width: 100%; }
+  }
+
+  /* Crossfade transition */
+  .story-panel.fading .story-body { opacity: 0; transition: opacity 0.4s ease; }
+  .story-panel.fading .story-img  { opacity: 0 !important; transition: opacity 0.4s ease !important; }
+  .story-panel .story-body { transition: opacity 0.4s ease; }
+</style>
+</head>
+<body>
+
+<div class="screen">
+  <div class="gold-line"></div>
+  <div class="bg-texture"></div>
+
+  <header>
+    <div>
+      <div class="eyebrow">Eqwal Group &mdash; Latest News</div>
+      <div class="headline">Your <em>Eqwal</em> Parts of Something Bigger</div>
+    </div>
+    <div class="header-right">
+      <div class="clock" id="clock">00:00</div>
+      <div class="date-str" id="date-str"></div>
+    </div>
+  </header>
+
+  <div class="main" id="main-grid">
+    <div class="story-panel" id="panel-0">
+      <div class="story-img-wrap">
+        <img class="story-img" id="img-0" alt="" />
+        <div class="story-overlay"></div>
+        <div class="tag-pill" id="tag-0">News</div>
+      </div>
+      <div class="story-body">
+        <div class="story-title" id="title-0">Loading&hellip;</div>
+        <div class="story-summary" id="summary-0"></div>
+        <div class="story-cta"><span class="cta-line"></span>Read more at eqwalgroup.com</div>
+      </div>
+    </div>
+    <div class="story-panel" id="panel-1">
+      <div class="story-img-wrap">
+        <img class="story-img" id="img-1" alt="" />
+        <div class="story-overlay"></div>
+        <div class="tag-pill" id="tag-1">News</div>
+      </div>
+      <div class="story-body">
+        <div class="story-title" id="title-1">Loading&hellip;</div>
+        <div class="story-summary" id="summary-1"></div>
+        <div class="story-cta"><span class="cta-line"></span>Read more at eqwalgroup.com</div>
+      </div>
+    </div>
+    <div class="story-panel" id="panel-2">
+      <div class="story-img-wrap">
+        <img class="story-img" id="img-2" alt="" />
+        <div class="story-overlay"></div>
+        <div class="tag-pill" id="tag-2">News</div>
+      </div>
+      <div class="story-body">
+        <div class="story-title" id="title-2">Loading&hellip;</div>
+        <div class="story-summary" id="summary-2"></div>
+        <div class="story-cta"><span class="cta-line"></span>Read more at eqwalgroup.com</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-brand">Eqwal Group</div>
+    <div class="ticker-wrap">
+      <div class="ticker-track" id="ticker-track"></div>
+    </div>
+    <div class="footer-url">eqwalgroup.com/news</div>
+    <div class="progress-bar" id="progress-bar"></div>
+  </footer>
+</div>
+
+<script>
+// ─── Articles loaded from feed.json (generated by the scraper)
+// Fallback articles are used if feed.json is not yet available
+const FALLBACK = [
+  {
+    title: "Orthomena Joins Eqwal",
+    summary: "Eqwal establishes its presence in Dubai with the integration of OrthoMENA, marking an exciting step into the Middle East.",
+    tag: "Acquisition",
+    img: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=900&q=80"
+  },
+  {
+    title: "Voetcomfort Acquired",
+    summary: "Eqwal continues its growth in the Netherlands with the acquisition of Voetcomfort, strengthening its European patient care network.",
+    tag: "Acquisition",
+    img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=900&q=80"
+  },
+  {
+    title: "Excellence In Motion 2026",
+    summary: "The third edition of Eqwal's international training programme brings together clinicians from across the global group.",
+    tag: "Training",
+    img: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=900&q=80"
+  },
+  {
+    title: "Pruis Orthopedie B.V. Joins Eqwal",
+    summary: "Eqwal strengthens its presence in the Netherlands with the integration of Pruis Orthopedie B.V.",
+    tag: "Acquisition",
+    img: "https://images.unsplash.com/photo-1551076805-e1869033e561?w=900&q=80"
+  },
+  {
+    title: "R. Huguenin & Fils S.A. Acquired",
+    summary: "Eqwal strengthens its presence in Switzerland with a new integration, expanding its European footprint further.",
+    tag: "Acquisition",
+    img: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&q=80"
+  },
+  {
+    title: "Orthopedic Mission in Senegal",
+    summary: "The Eqwal Foundation and Nav'Solidaire completed a humanitarian orthopedic training mission supporting clinicians in Senegal.",
+    tag: "Foundation",
+    img: "https://images.unsplash.com/photo-1594708767771-a5fc04dc3767?w=900&q=80"
+  },
+  {
+    title: "Kurtze GmbH Joins Eqwal Germany",
+    summary: "The German network of Eqwal expands with the integration of Orthopädie-Technik Kurtze GmbH.",
+    tag: "Acquisition",
+    img: "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=900&q=80"
+  },
+  {
+    title: "Eqwal Expands into Denmark",
+    summary: "Bandagist Centret joins the Eqwal group, marking the company's first integration in Denmark.",
+    tag: "Acquisition",
+    img: "https://images.unsplash.com/photo-1513622470522-26c3c8a854bc?w=900&q=80"
+  },
+  {
+    title: "Eqwal Foundation Mission in Jordan",
+    summary: "The Eqwal Foundation partnered with MSF Foundation on a humanitarian mission supporting patients in Jordan.",
+    tag: "Foundation",
+    img: "https://images.unsplash.com/photo-1548943487-a2e4e43b4853?w=900&q=80"
+  },
+];
+
+let articles = [];
+let currentSet = 0;
+
+// ─── Load feed.json if available (populated by the scraper)
+async function loadFeed() {
+  try {
+    const res = await fetch('feed.json?t=' + Date.now());
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        articles = data;
+        return;
+      }
+    }
+  } catch (e) {}
+  articles = FALLBACK;
+}
+
+// ─── Clock
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2, '0');
+  const m = String(now.getMinutes()).padStart(2, '0');
+  document.getElementById('clock').textContent = h + ':' + m;
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('date-str').textContent =
+    days[now.getDay()] + ' ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+}
+
+// ─── Ticker
+function setupTicker() {
+  const track = document.getElementById('ticker-track');
+  const doubled = [...articles, ...articles];
+  track.innerHTML = doubled.map(a =>
+    `<span class="ticker-item">${a.title}</span><span class="ticker-sep">&#9670;</span>`
+  ).join('');
+}
+
+// ─── Render 3 stories
+function getSet(index) {
+  const out = [];
+  for (let i = 0; i < 3; i++) {
+    out.push(articles[(index * 3 + i) % articles.length]);
+  }
+  return out;
+}
+
+function renderStories(set, fade) {
+  set.forEach((a, i) => {
+    const panel = document.getElementById('panel-' + i);
+    if (fade) panel.classList.add('fading');
+
+    setTimeout(() => {
+      document.getElementById('title-' + i).textContent = a.title;
+      document.getElementById('summary-' + i).textContent = a.summary;
+      document.getElementById('tag-' + i).textContent = a.tag;
+
+      const imgEl = document.getElementById('img-' + i);
+      imgEl.classList.remove('loaded');
+      imgEl.onload = () => imgEl.classList.add('loaded');
+      imgEl.src = a.img || '';
+
+      if (fade) {
+        panel.classList.remove('fading');
+      }
+    }, fade ? 420 : 0);
+  });
+}
+
+// ─── Progress bar
+function startProgress() {
+  const bar = document.getElementById('progress-bar');
+  bar.classList.remove('running');
+  void bar.offsetWidth;
+  bar.classList.add('running');
+}
+
+// ─── Cycle stories every 12 seconds
+function startCycle() {
+  startProgress();
+  setInterval(() => {
+    currentSet++;
+    renderStories(getSet(currentSet), true);
+    startProgress();
+  }, 12000);
+}
+
+// ─── Re-fetch feed every 30 minutes
+function scheduleRefresh() {
+  setInterval(async () => {
+    await loadFeed();
+    setupTicker();
+    renderStories(getSet(currentSet), true);
+  }, 30 * 60 * 1000);
+}
+
+// ─── Boot
+async function init() {
+  updateClock();
+  setInterval(updateClock, 30000);
+  await loadFeed();
+  setupTicker();
+  renderStories(getSet(0), false);
+  startCycle();
+  scheduleRefresh();
+}
+
+init();
+</script>
+</body>
+</html>
