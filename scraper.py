@@ -79,7 +79,7 @@ class NewsParser(HTMLParser):
         if self._in_link and tag == "a":
             self._in_link = False
             raw = self._current.get("raw_text", [])
-            content = [t for t in raw if len(t) > 8 and "Read article" not in t]
+            content = [t for t in raw if len(t) > 8 and "Read article" not in t and "All articles" not in t and t != "All articles"]
             if content:
                 title   = content[0]
                 summary = content[1] if len(content) > 1 else title
