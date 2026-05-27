@@ -1,21 +1,24 @@
 #!/usr/bin/env python3
 """
 Eqwal News Scraper
-Fetches the latest articles from eqwalgroup.com/news and writes feed.json
-Run manually or via GitHub Actions on a schedule.
+Fetches the latest articles from eqwalgroup.com/news and writes:
+  - feed.json     (used by the display board)
+  - feed.rss.xml  (standard RSS feed for TrilbyTV and other readers)
 """
 
 import json
-import re
 import urllib.request
-import urllib.error
 from html.parser import HTMLParser
+from datetime import datetime, timezone
 
-NEWS_URL = "https://eqwalgroup.com/news/"
-OUTPUT_FILE = "feed.json"
-MAX_ARTICLES = 12  # Keep the most recent 12 for cycling
+NEWS_URL   = "https://eqwalgroup.com/news/"
+JSON_FILE  = "feed.json"
+RSS_FILE   = "feed.rss.xml"
+MAX_ARTICLES = 12
+FEED_TITLE   = "Eqwal Group News"
+FEED_LINK    = "https://eqwalgroup.com/news/"
+FEED_DESC    = "Latest news from Eqwal Group"
 
-# Fallback images by category (Unsplash, free to use)
 CATEGORY_IMAGES = {
     "Acquisition": [
         "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=900&q=80",
@@ -37,25 +40,6 @@ CATEGORY_IMAGES = {
     ],
 }
 
-# Map Eqwal tag names to display labels and image categories
-TAG_MAP = {
-    "eqwal foundation": ("Foundation", "Foundation"),
-    "eqwal education":  ("Training",   "Training"),
-    "eqwal impact":     ("Foundation", "Foundation"),
-    "patient stories":  ("News",       "News"),
-    "features technology": ("Technology", "News"),
-    "eqwal":            ("News",       "News"),
-}
-
-def classify(raw_tags):
-    """Return (display_tag, image_category) from raw tag strings."""
-    for t in raw_tags:
-        key = t.strip().lower()
-        if key in TAG_MAP:
-            return TAG_MAP[key]
-    # Heuristic: if title contains acquisition keywords
-    return ("Acquisition", "Acquisition")
-
 def pick_image(category, index):
     pool = CATEGORY_IMAGES.get(category, CATEGORY_IMAGES["News"])
     return pool[index % len(pool)]
@@ -68,56 +52,49 @@ def fetch_html(url):
         return resp.read().decode("utf-8", errors="replace")
 
 class NewsParser(HTMLParser):
-    """Parse the Eqwal news page and extract article links + titles."""
-
     def __init__(self):
         super().__init__()
-        self.articles = []
-        self._in_article = False
-        self._current = {}
-        self._depth = 0
+        self.articles   = []
+        self._in_link   = False
+        self._current   = {}
 
     def handle_starttag(self, tag, attrs):
         attrs_dict = dict(attrs)
         href = attrs_dict.get("href", "")
-        # Each article is a link under /news/ with a unique slug
         if tag == "a" and href.startswith("/news/") and href != "/news/" and len(href) > 7:
-            self._in_article = True
+            self._in_link = True
             self._current = {
-                "url": "https://eqwalgroup.com" + href,
-                "slug": href.strip("/").split("/")[-1],
+                "url":      "https://eqwalgroup.com" + href,
+                "slug":     href.strip("/").split("/")[-1],
                 "raw_text": []
             }
 
     def handle_data(self, data):
-        if self._in_article:
+        if self._in_link:
             text = data.strip()
             if text:
                 self._current["raw_text"].append(text)
 
     def handle_endtag(self, tag):
-        if self._in_article and tag == "a":
-            self._in_article = False
+        if self._in_link and tag == "a":
+            self._in_link = False
             raw = self._current.get("raw_text", [])
-            # Filter: skip nav links and very short strings
             content = [t for t in raw if len(t) > 8 and "Read article" not in t]
             if content:
-                title = content[0]
-                summary = content[1] if len(content) > 1 else ""
-                slug = self._current["slug"]
-                # Skip duplicate slugs
-                known = [a["slug"] for a in self.articles]
+                title   = content[0]
+                summary = content[1] if len(content) > 1 else title
+                slug    = self._current["slug"]
+                known   = [a["slug"] for a in self.articles]
                 if slug not in known:
                     self.articles.append({
-                        "slug": slug,
-                        "url": self._current["url"],
-                        "title": title,
+                        "slug":    slug,
+                        "url":     self._current["url"],
+                        "title":   title,
                         "summary": summary,
                     })
             self._current = {}
 
 def infer_tag(title, summary):
-    """Guess a display tag from the article text."""
     text = (title + " " + summary).lower()
     if any(w in text for w in ["acqui", "integrat", "joins eqwal", "join eqwal", "merger"]):
         return ("Acquisition", "Acquisition")
@@ -128,6 +105,40 @@ def infer_tag(title, summary):
     if any(w in text for w in ["director", "manager", "appoint", "welcome", "talent", "team"]):
         return ("People", "News")
     return ("News", "News")
+
+def xml_escape(text):
+    return (text
+        .replace("&",  "&amp;")
+        .replace("<",  "&lt;")
+        .replace(">",  "&gt;")
+        .replace('"',  "&quot;")
+        .replace("'",  "&apos;"))
+
+def build_rss(articles):
+    now_rfc = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S +0000")
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">',
+        '  <channel>',
+        f'    <title>{xml_escape(FEED_TITLE)}</title>',
+        f'    <link>{FEED_LINK}</link>',
+        f'    <description>{xml_escape(FEED_DESC)}</description>',
+        f'    <lastBuildDate>{now_rfc}</lastBuildDate>',
+        '    <language>en</language>',
+    ]
+    for art in articles:
+        lines += [
+            '    <item>',
+            f'      <title>{xml_escape(art["title"])}</title>',
+            f'      <link>{xml_escape(art["url"])}</link>',
+            f'      <description>{xml_escape(art["summary"])}</description>',
+            f'      <guid isPermaLink="true">{xml_escape(art["url"])}</guid>',
+            f'      <category>{xml_escape(art["tag"])}</category>',
+            f'      <media:content url="{xml_escape(art["img"])}" medium="image"/>',
+            '    </item>',
+        ]
+    lines += ['  </channel>', '</rss>']
+    return "\n".join(lines)
 
 def build_feed():
     print(f"Fetching {NEWS_URL} ...")
@@ -143,16 +154,21 @@ def build_feed():
         tag_label, img_cat = infer_tag(art["title"], art["summary"])
         feed.append({
             "title":   art["title"],
-            "summary": art["summary"] if art["summary"] else art["title"],
+            "summary": art["summary"],
             "tag":     tag_label,
             "url":     art["url"],
             "img":     pick_image(img_cat, i),
         })
 
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+    with open(JSON_FILE, "w", encoding="utf-8") as f:
         json.dump(feed, f, ensure_ascii=False, indent=2)
+    print(f"Written {len(feed)} articles to {JSON_FILE}")
 
-    print(f"Written {len(feed)} articles to {OUTPUT_FILE}")
+    rss = build_rss(feed)
+    with open(RSS_FILE, "w", encoding="utf-8") as f:
+        f.write(rss)
+    print(f"Written RSS feed to {RSS_FILE}")
+
     for a in feed:
         print(f"  [{a['tag']}] {a['title']}")
 
